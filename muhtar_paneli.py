@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -174,22 +175,23 @@ if kullanici_turu == "👤 Hane Sakini (Köylü)":
         sorgu_kodu = st.text_input("Lütfen size verilen Takip Kodunu giriniz (Örn: KA-1234):").strip()
         
         if sorgu_kodu:
-            bulunanlar = [s for s in mevcut_sikayetler if s.get('takip_kodu', '').lower() == sorgu_kodu.lower()]
+            bulunanlar = [s for s in mevcut_sikayetler if str(s.get('takip_kodu', '')).lower() == sorgu_kodu.lower()]
             if bulunanlar:
                 dilekce = bulunanlar[0]
                 st.write("---")
                 st.subheader("📊 Dilekçenizin Canlı Durumu:")
                 
-                if "Okunmadı" in dilekce['durum']:
-                    st.warning(f"📌 GÜNCEL DURUM: {dilekce['durum']}")
-                elif "Okudu" in dilekce['durum']:
-                    st.info(f"📌 GÜNCEL DURUM: {dilekce['durum']}")
+                durum_metni = dilekce.get('durum', 'Bilgi Yok 🟡')
+                if "Okunmadı" in durum_metni:
+                    st.warning(f"📌 GÜNCEL DURUM: {durum_metni}")
+                elif "Okudu" in durum_metni:
+                    st.info(f"📌 GÜNCEL DURUM: {durum_metni}")
                 else:
-                    st.success(f"📌 GÜNCEL DURUM: {dilekce['durum']}")
+                    st.success(f"📌 GÜNCEL DURUM: {durum_metni}")
                     
-                st.write(f"📅 **Gönderim Tarihi:** {dilekce['tarih']}")
-                st.write(f"📁 **Konu Başlığı:** {dilekce['konu']}")
-                st.write(f"💬 **Yazdığınız Detay:** {dilekce['detay']}")
+                st.write(f"📅 **Gönderim Tarihi:** {dilekce.get('tarih', '-')}")
+                st.write(f"📁 **Konu Başlığı:** {dilekce.get('konu', '-')}")
+                st.write(f"💬 **Yazdığınız Detay:** {dilekce.get('detay', '-')}")
             else:
                 st.error("❌ Hatalı veya geçersiz bir takip kodu girdiniz. Lütfen kontrol edin.")
                 
@@ -216,31 +218,40 @@ elif kullanici_turu == "🔑 Muhtar Girişi":
             
             if len(mevcut_sikayetler) > 0:
                 for sikayet in mevcut_sikayetler:
-                    with st.expander(f"📋 {sikayet['tarih']} - {sikayet['gonderen']} [{sikayet['takip_kodu']}]"):
-                        st.write(f"**Güncel Durum:** {sikayet['durum']}")
-                        st.write(f"**Telefon:** {sikayet['telefon']}")
-                        st.write(f"**Detay:** {sikayet['detay']}")
+                    # GÜVENLİ VERİ ÇEKME YÖNTEMİ (.get() eklendi - Hata Önleyici)
+                    s_id = sikayet.get('id', random.randint(10000, 99999))
+                    s_tarih = sikayet.get('tarih', 'Eski Kayıt')
+                    s_gonderen = sikayet.get('gonderen', 'Bilinmeyen Sakin')
+                    s_kod = sikayet.get('takip_kodu', 'KA-0000')
+                    s_durum = sikayet.get('durum', 'İncelemede 🟡')
+                    s_telefon = sikayet.get('telefon', '-')
+                    s_detay = sikayet.get('detay', '-')
+                    
+                    with st.expander(f"📋 {s_tarih} - {s_gonderen} [{s_kod}]"):
+                        st.write(f"**Güncel Durum:** {s_durum}")
+                        st.write(f"**Telefon:** {s_telefon}")
+                        st.write(f"**Detay:** {s_detay}")
                         
                         st.write("**⚙️ Bu Dilekçenin Durumunu Değiştir (Köylü Canlı Görecek):**")
                         c_okundu, c_cozuldu, c_sil = st.columns(3)
                         with c_okundu:
-                            if st.button("👁️ Okundu Yap", key=f"okundu_{sikayet['id']}"):
-                                durum_guncelle(sikayet['id'], "Muhtar Okudu ve İşleme Aldı 🔵")
+                            if st.button("👁️ Okundu Yap", key=f"okundu_{s_id}"):
+                                durum_guncelle(s_id, "Muhtar Okudu ve İşleme Aldı 🔵")
                                 st.rerun()
                         with c_cozuldu:
-                            if st.button("✅ Çözüldü Yap", key=f"cozuldu_{sikayet['id']}"):
-                                durum_guncelle(sikayet['id'], "Sorun Muhtar Tarafından Çözüldü 🟢")
+                            if st.button("✅ Çözüldü Yap", key=f"cozuldu_{s_id}"):
+                                durum_guncelle(s_id, "Sorun Muhtar Tarafından Çözüldü 🟢")
                                 st.rerun()
                         with c_sil:
-                            if st.button("🗑️ Sil", key=f"sil_{sikayet['id']}"):
-                                veriyi_sil(sikayet['id'])
+                            if st.button("🗑️ Sil", key=f"sil_{s_id}"):
+                                veriyi_sil(s_id)
                                 st.rerun()
                                 
-                        if sikayet['telefon'] != "-":
+                        if s_telefon != "-":
                             st.write("---")
-                            muhtar_ham_mesaj = f"Sayın {sikayet['gonderen']}, saygıdeğer köy sakinimiz; iletmiş olduğunuz {sikayet['takip_kodu']} kodlu talebiniz muhtarlığımızca incelenmiştir."
+                            muhtar_ham_mesaj = f"Sayın {s_gonderen}, saygıdeğer köy sakinimiz; iletmiş olduğunuz {s_kod} kodlu talebiniz muhtarlığımızca incelenmiştir."
                             muhtar_kodlanmis_mesaj = urllib.parse.quote(muhtar_ham_mesaj)
-                            muhtar_wa_link = f"https://wa.me/90{sikayet['telefon']}?text={muhtar_kodlanmis_mesaj}"
+                            muhtar_wa_link = f"https://wa.me/90{s_telefon}?text={muhtar_kodlanmis_mesaj}"
                             st.markdown(f'<a href="{muhtar_wa_link}" target="_blank"><button style="background-color:#128C7E;color:white;border:none;padding:5px 10px;border-radius:3px;font-size:12px;cursor:pointer;">💬 Vatandaşa WhatsApp\'tan Resmi Cevap Yaz</button></a>', unsafe_allow_html=True)
             else:
                 st.info("Okunmamış veya gelen herhangi bir dilekçe bulunmamaktadır.")
